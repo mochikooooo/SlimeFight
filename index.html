@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Slime Fight</title>
+
+<style>
+body{
+    background:#1e1e1e;
+    color:white;
+    font-family:sans-serif;
+    margin:0;
+    padding:20px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+}
+
+.panel{
+    background:#2d2d2d;
+    border-radius:10px;
+    padding:15px;
+    margin-bottom:15px;
+}
+
+.stats{
+    display:flex;
+    gap:10px;
+}
+
+.stat{
+    flex:1;
+    background:#3b3b3b;
+    padding:10px;
+    border-radius:8px;
+}
+
+.buttons{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+button{
+    padding:15px;
+    border:none;
+    border-radius:8px;
+    background:#4c8bf5;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+
+button:hover{
+    opacity:0.8;
+}
+
+.log{
+    background:black;
+    height:400px;
+    overflow-y:auto;
+    padding:10px;
+    border-radius:8px;
+    white-space:pre-line;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="panel stats">
+
+        <div class="stat">
+            <h2>Player</h2>
+            <p>HP : <span id="playerHP">300</span></p>
+            <p>MP : <span id="playerMP">200</span></p>
+        </div>
+
+        <div class="stat">
+            <h2>Slime Lv.48</h2>
+            <p>HP : <span id="slimeHP">1000</span></p>
+        </div>
+
+    </div>
+
+    <div class="panel buttons">
+        <button onclick="playerAttack()">攻撃</button>
+        <button onclick="openMagic()">魔法</button>
+        <button onclick="showStatus()">状況整理</button>
+        <button onclick="escapeBattle()">逃げる</button>
+    </div>
+
+    <div class="panel" id="magicMenu" style="display:none;">
+
+        <div class="buttons">
+            <button onclick="useMagic(1)">プロテクション</button>
+            <button onclick="useMagic(2)">ヒール</button>
+            <button onclick="useMagic(3)">サクリファイス</button>
+        </div>
+
+    </div>
+
+    <div class="panel log" id="log"></div>
+
+</div>
+
+<script>
+
+let Turn = 0;
+let PlayerHealth = 300;
+let SlimeHealth = 1000;
+let MagicPoint = 200;
+let Buff = [0,0,0];
+
+const log = document.getElementById("log");
+
+function addLog(text){
+
+    log.innerHTML += text + "\n";
+    log.scrollTop = log.scrollHeight;
+}
+
+function updateUI(){
+
+    document.getElementById("playerHP").textContent = PlayerHealth;
+    document.getElementById("playerMP").textContent = MagicPoint;
+    document.getElementById("slimeHP").textContent = SlimeHealth;
+}
+
+function rollDice(){
+
+    return Math.floor(Math.random() * 10);
+}
+
+function startTurn(){
+
+    Turn++;
+
+    addLog("\n--- " + Turn + " ターン目----------------------------");
+
+    if(MagicPoint != 200){
+
+        let MPHealValue = Math.round((200 - MagicPoint) * 0.08);
+
+        MagicPoint += MPHealValue;
+
+        addLog("\nMPが少し回復した");
+    }
+
+    if(Buff[1] >= 1){
+
+        let HealValue = Math.round((300 - PlayerHealth) * 0.12);
+
+        PlayerHealth += HealValue;
+
+        addLog("\nヒールが発動！HPを " + HealValue + " 回復した(残り " + Buff[1] + " ターン)");
+    }
+
+    updateUI();
+}
+
+function playerAttack(){
+
+    let dice = rollDice();
+
+    addLog("サイコロを振った...");
+
+    if(1 <= dice && dice <= 7){
+
+        addLog(dice + " の目を出した。ぱっとしない数字だ。");
+
+        let damage = dice * 10;
+
+        if(Buff[2] >= 1){
+
+            addLog("攻撃力上昇中！");
+
+            damage = Math.floor(damage * 1.5);
+        }
+
+        SlimeHealth -= damage;
+
+        addLog("スライムに攻撃、 " + damage + " ダメージ与えた。");
+
+    }else if(dice == 0){
+
+        addLog(dice + " の目を出した。なんでサイコロに0の目があるんだよ。");
+        addLog("攻撃を外してしまった！");
+
+    }else{
+
+        SlimeHealth -= 200;
+
+        addLog(dice + " の目を出した！気分は最高潮だ。");
+        addLog("なんとなく右手の平あたりに可能性を感じたので、スライムに平手打ちした！");
+        addLog("渾身の一撃！スライムに 200 ダメージ与えた。");
+    }
+
+    updateUI();
+
+    setTimeout(slimeTurn,500);
+}
+
+function slimeTurn(){
+
+    if(SlimeHealth <= 0){
+
+        addLog("\n===========================================\n\nスライムを倒した！");
+        return;
+    }
+
+    addLog("\n---スライムのターン------------------------");
+
+    let dice = rollDice();
+
+    if(dice == 0){
+
+        addLog("\nスライムは滑ってコケた");
+
+    }else if(1 <= dice && dice <= 4){
+
+        let damage = dice * 15;
+
+        if(Buff[0] >= 1){
+
+            addLog("\nダメージ減少発動中！");
+
+            damage = Math.floor(damage * 0.7);
+        }
+
+        PlayerHealth -= damage;
+
+        addLog("\nスライムの攻撃！ " + damage + " ダメージ受けてしまった");
+
+    }else if(5 <= dice && dice <= 8){
+
+        let heal = dice * 6;
+
+        SlimeHealth += heal;
+
+        if(SlimeHealth >= 1000){
+
+            SlimeHealth = 1000;
+        }
+
+        addLog("\nスライムはそこら辺の薬草を取り込んで、 " + heal + " 回復した");
+
+    }else{
+
+        let damage = 80;
+
+        if(Buff[0] >= 1){
+
+            addLog("\nダメージ減少発動中！");
+
+            damage = Math.floor(damage * 0.7);
+        }
+
+        PlayerHealth -= damage;
+
+        addLog("\n渾身の一撃！スライムから " + damage + " ダメージ受けてしまった。");
+    }
+
+    Buff = Buff.map(x => Math.max(0, x - 1));
+
+    updateUI();
+
+    if(PlayerHealth <= 0){
+
+        addLog("\n===========================================\n\nお前は死んだ");
+        return;
+    }
+
+    startTurn();
+}
+
+function openMagic(){
+
+    let menu = document.getElementById("magicMenu");
+
+    if(menu.style.display == "none"){
+
+        menu.style.display = "block";
+
+    }else{
+
+        menu.style.display = "none";
+    }
+}
+
+function useMagic(type){
+
+    if(type == 1){
+
+        if(MagicPoint >= 20 && Buff[0] == 0){
+
+            Buff[0] = 5;
+            MagicPoint -= 20;
+
+            addLog("プロテクションを唱えた！(MP-20)");
+
+        }else{
+
+            addLog("使用できない");
+            return;
+        }
+
+    }else if(type == 2){
+
+        if(MagicPoint >= 40 && Buff[1] == 0){
+
+            Buff[1] = 4;
+            MagicPoint -= 40;
+
+            addLog("ヒールを唱えた！(MP-40)");
+
+        }else{
+
+            addLog("使用できない");
+            return;
+        }
+
+    }else{
+
+        if(MagicPoint >= 30 && Buff[2] == 0){
+
+            Buff[2] = 4;
+            MagicPoint -= 30;
+
+            let cost = Math.round(PlayerHealth * 0.1);
+
+            PlayerHealth -= cost;
+
+            addLog("サクリファイスを唱えた！(MP-30)");
+            addLog(cost + " HP分を犠牲にし、攻撃力が上昇した");
+
+        }else{
+
+            addLog("使用できない");
+            return;
+        }
+    }
+
+    updateUI();
+
+    setTimeout(slimeTurn,500);
+}
+
+function showStatus(){
+
+    let text = "";
+
+    text += "\n状況を整理した";
+    text += "\n- - - - - - - - - - - - - - - -";
+
+    text += "\n\n【" + Turn + "ターン目】";
+
+    text += "\n\nスライム(Lv.48) HP : " + SlimeHealth;
+    text += "\nPlayer(Lv33) HP : " + PlayerHealth;
+    text += "\n             MP : " + MagicPoint;
+
+    if(Buff[0] == 0 && Buff[1] == 0 && Buff[2] == 0){
+
+        text += "\nバフなし\n";
+
+    }else{
+
+        text += "\nバフ :";
+
+        if(Buff[0] >= 1){
+
+            text += "\nプロテクション : あと " + Buff[0] + " ターン";
+        }
+
+        if(Buff[1] >= 1){
+
+            text += "\nヒール : あと " + Buff[1] + " ターン";
+        }
+
+        if(Buff[2] >= 1){
+
+            text += "\nサクリファイス : あと " + Buff[2] + " ターン";
+        }
+
+        text += "\n";
+    }
+
+    text += "\n- - - - - - - - - - - - - - - -";
+
+    addLog(text);
+}
+
+function escapeBattle(){
+
+    let dice = rollDice();
+
+    if(dice == 9){
+
+        addLog("戦闘から逃れることができた！");
+
+    }else{
+
+        PlayerHealth -= 100;
+
+        addLog("逃走失敗！");
+        addLog("100ダメージ受けた");
+
+        updateUI();
+
+        setTimeout(slimeTurn,500);
+    }
+}
+
+updateUI();
+
+addLog("スライムに遭遇してしまった！");
+
+startTurn();
+
+</script>
+
+</body>
+</html>
